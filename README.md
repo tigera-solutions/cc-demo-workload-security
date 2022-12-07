@@ -1,12 +1,16 @@
-# Calico Cloud demo using an EKS Cluster
+# Calico Cloud demo on an EKS Cluster
 
 In this demo, you will work with AWS EKS and Calico Cloud to learn how to design and deploy best practices to secure your Kubernetes environment. This 60-minute hands-on lab will guide you from building an EKS cluster, creating a Calico Cloud trial account and registering your EKS cluster to Calico Cloud for configuring security policies to protect your workloads. This sample environment is designed to help implement:
 
-- Configuration security including Kubernetes Security Posture Management (KSPM) 
-- Security policies for compliance
-- Compliance, evidence, and audit reporting
-
-You will come away from this workshop with an understanding of how others in your industry are securing and observing cloud-native applications in Microsoft Azure, along with best practices that you can implement in your organization.
+- Security Policies for pods and namespaces.
+  - Policy tiers
+  - Security Policies
+  - Security Policy Recommender
+  - DNS Policies
+  - Ingress Policies
+- Infrastructure as a Code and Calico Cloud.
+- Customizing deployed policies.
+- Best Practices for EKS cluster.
 
 ---
 
@@ -30,13 +34,6 @@ Once you are able to login to Calico Cloud UI, go to the "Managed clusters" sect
 
 ![managed-clusters](./img/managed-clusters.png)
 
-## Create a cluster an connect it to Calico Cloud.
-
-If you don't have an AKS cluster created for this workshop, we recommend you create one. You can use the steps described here to create a Calico Cloud compatible AKS cluster to follow along with this workshop.
-
-   - [Azure AKS Cluster Creation - Azure CNI for Calico Cloud](./aks-azurecni.md)
-   
-   > **Connect your cluster to** [Calico Cloud](https://calicocloud.io)
 
 ---
 
