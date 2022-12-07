@@ -1,4 +1,4 @@
-# Calico Cloud demo on an EKS Cluster
+# Calico Cloud Demo on an EKS Cluster
 
 In this demo, you will work with AWS EKS and Calico Cloud to learn how to design and deploy best practices to secure your Kubernetes environment. This 60-minute hands-on lab will guide you from building an EKS cluster, creating a Calico Cloud trial account and registering your EKS cluster to Calico Cloud for configuring security policies to protect your workloads. This sample environment is designed to help implement:
 
@@ -36,22 +36,41 @@ Once you are able to login to Calico Cloud UI, go to the "Managed clusters" sect
 
 ---
 
-## Configure your cluster and install demo applications
+## Enviroment Preparation
 
-Configure Calico parameters for this workshop, and install and configure demo applications.
+### Decrease the time to collect flow logs
 
-- [Configure your cluster and install demo applications](./config-demo-apps.md)
+By default, flow logs are collected every 5 minutes. We will decrease that time to 15 seconds, which will increase the amount of information we must store, and while that is not recommended for production environments, it will help to speed up the time in which events are seen within Calico observability features.
 
----
+```bash
+kubectl patch felixconfiguration default -p '{"spec":{"flowLogsFlushInterval":"15s"}}'
+kubectl patch felixconfiguration default -p '{"spec":{"dnsLogsFlushInterval":"15s"}}'
+kubectl patch felixconfiguration default -p '{"spec":{"flowLogsFileAggregationKindForAllowed":1}}'
+kubectl patch felixconfiguration default -p '{"spec":{"flowLogsFileAggregationKindForDenied":0}}'
+kubectl patch felixconfiguration default -p '{"spec":{"dnsLogsFileAggregationKind":0}}'
+```
 
-# How Calico supports compliance requirements
+Configure Felix to collect TCP stats - this uses eBPF TC program and requires miniumum Kernel version of v5.3.0/v4.18.0-193. Further documentation.
 
-Tigera’s solutions, Calico Cloud and Calico Enterprise, enable north-south controls such as egress access, east-west controls such as microsegmentation, and enterprise security controls, policy enforcement, and compliance reporting across all Kubernetes distributions in both hybrid and multi-cloud environments. 
+```bash
+kubectl patch felixconfiguration default -p '{"spec":{"flowLogsCollectTcpStats":true}}'
+```
 
-- [Download the whitepaper: PCI compliance for Hosts, VMs, containers, and Kubernetes](https://www.tigera.io/lp/kubernetes-pci-compliance/)
-- [Download the PCI DSS v4.0 Quick Reference Guide](https://docs-prv.pcisecuritystandards.org/PCI%20DSS/Supporting%20Document/PCI_DSS-QRG-v4_0.pdf)
+### Install demo applications
 
-Calico provides the following features to help achieve PCI compliance.
+- Deploy demo applications.
+
+  Deploy the dev app stack
+
+  ```bash
+  kubectl apply -f https://raw.githubusercontent.com/regismartins/cc-aks-security-compliance-workshop/main/manifests/dev-app-manifest.yaml
+  ```
+  
+  Deploy the Online Boutique app stack
+
+  ```bash
+  kubectl apply -f https://raw.githubusercontent.com/regismartins/cc-aks-security-compliance-workshop/main/manifests/kubernetes-manifests.yaml
+  ```
 
 ---
 
@@ -59,11 +78,7 @@ Calico provides the following features to help achieve PCI compliance.
 
 Calico provides methods to enable fine-grained access controls between your microservices and external databases, cloud services, APIs, and other applications that are protected behind a firewall. You can enforce controls from within the cluster using DNS egress policies, from a firewall outside the cluster using the egress gateway. Controls are applied on a fine-grained, per-pod basis.
 
-### Service Graph and Flow Visualizer
-
-| PCI Control # | Requirements| How Calico meets this requirements |
-| --- | --- | --- |
-| 1.1.2, 1.1.3 | Current network diagram that identifies all connections between the CDE and other networks and systems | • Stay current with the network diagram for in-scope workloads in Kubernetes environments using Calico’s Dynamic Service Graph and flow visualizer |
+## Service Graph and Flow Visualizer
 
 Connect to Calico Cloud GUI. From the menu select `Service Graph > Default`. Explore the options.
 
@@ -74,17 +89,54 @@ Connect to Calico Cloud GUI. From the menu select `Service Graph > Flow Visualiz
 ![flow-visualization](https://user-images.githubusercontent.com/104035488/192358472-112c832f-2fd7-4294-b8cc-fec166a9b11e.gif)
 
 
+## Security Policy Tier structure
+
+Tiers are a hierarchical construct used to group policies and enforce higher precedence policies that cannot be circumvented by other    teams. 
+
+All Calico and Kubernetes security policies reside in tiers. You can start “thinking in tiers” by grouping your teams and types of policies within each group. The command below will create three tiers (quarantine, platform, and security):
+
+```yaml
+kubectl apply -f - <<-EOF   
+apiVersion: projectcalico.org/v3
+kind: Tier
+metadata:
+  name: quarantine
+spec:
+  order: 200
 ---
+apiVersion: projectcalico.org/v3
+kind: Tier
+metadata:
+  name: platform
+spec:
+  order: 300
+---
+apiVersion: projectcalico.org/v3
+kind: Tier
+metadata:
+  name: security
+spec:
+  order: 400
+```
 
-### Zero trust Security
+For normal policy processing (without apply-on-forward, pre-DNAT, and do-not-track), if no policies within a tier apply to endpoints, the tier is skipped, and the tier’s implicit deny behavior is not executed.
 
-| PCI Control # | Requirements| How Calico meets this requirements |
-| --- | --- | --- |
-| 7.1, 7.2 | Restrict access to cardholder data by business need to know | • Use zero trust security features to implement a default-deny model (access to all data services should be specifically allowed; everything else should be denied)<br>• Follow a zero trust security model and implement least-privilege access (all processes should only be able to access information necessary for their legitimate purpose)
+For example, if policy D in Tier 2 includes a Pass action rule, but no policy matches endpoints in Tier 3, Tier 3 is skipped, including the end of tier deny. The first policy with a matching endpoint is in Tier 4, policy J.
+
+![endpoint-match](./img/endpoint-match.svg)
+--
+
+## Security Policies
 
 A global default deny policy ensures that unwanted traffic (ingress and egress) is denied by default. Pods without policy (or incorrect policy) are not allowed traffic until appropriate network policy is defined. Although the staging policy tool will help you find incorrect and missing policy, a global deny helps mitigate against other lateral malicious attacks.
 
 By default, all traffic is allowed between the pods in a cluster. First, let's test connectivity between application components and across application stacks. All of these tests should succeed as there are no policies in place.
+
+Install curl in the loadgenerator for these tests.
+
+```bash
+kubectl exec -it $(kubectl get po -l app=loadgenerator -ojsonpath='{.items[0].metadata.name}') -c main -- sh -c 'apt-get update && apt install curl -y'
+```
 
 a. Test connectivity between workloads within each namespace, use dev and default namespaces as example
 
@@ -173,7 +225,7 @@ We recommend that you create a global default deny policy after you complete wri
    EOF
    ```
 
-   Test connectivity with policies in place.
+3. Test connectivity with policies in place.
 
    a. The only connections between the components within namespaces dev are from centos to nginx, which should be allowed as configured by the policies.
 
@@ -210,7 +262,7 @@ We recommend that you create a global default deny policy after you complete wri
    -c main -- sh -c 'curl -m3 -sI http://www.google.com 2>/dev/null | grep -i http'
    ```
 
-   Implement explicitic policy to allow egress access from a workload in one namespace/pod, e.g. dev/centos, to default/frontend.
+4. Implement explicitic policy to allow egress access from a workload in one namespace/pod, e.g. dev/centos, to default/frontend.
    
    a. Deploy egress policy between two namespaces dev and default.
 
@@ -245,22 +297,17 @@ We recommend that you create a global default deny policy after you complete wri
    #output is HTTP/1.1 200 OK
    ```
 
-   Apply the policies to allow the microservices to communicate with each other.
+5. Apply the policies to allow the microservices to communicate with each other.
 
    ```bash
    kubectl apply -f https://raw.githubusercontent.com/regismartins/cc-aks-security-compliance-workshop/main/manifests/east-west-traffic.yaml
    ```
 
-3. Use the Calico Cloud GUI to enforce the default-deny staged policy. After enforcing a staged policy, it takes effect immediatelly. The default-deny policy will start to actually deny traffic.
+6. Use the Calico Cloud GUI to enforce the default-deny staged policy. After enforcing a staged policy, it takes effect immediatelly. The default-deny policy will start to actually deny traffic.
    
 ---
 
-### Ingress and Egress access control using NetworkSets
-
-
-| PCI Control # | Requirements| How Calico meets this requirements |
-| --- | --- | --- |
-| 1.3, 1.3.1, 1.3.2, 1.3.3, 1.3.4, 1.3.5, 1.3.7 | Prohibit and/or manage access between internet and CDE | • Whitelist ingress access from the public internet only if the endpoint is providing a publicly accessible service<br>• Whitelist egress access to the public internet from all in-covered components<br>• Protect against forged source IP addresses with WireGuard (integrated in Calico)|
+## DNS Policies and NetworkSets
 
 1. Implement DNS policy to allow the external endpoint access from a specific workload, e.g. `dev/centos`.
 
@@ -369,7 +416,9 @@ We recommend that you create a global default deny policy after you complete wri
    kubectl -n dev exec -t centos -- sh -c 'curl -m3 -skI https://www.google.com 2>/dev/null | grep -i http'
    ```
 
-3. The NetworkSet can also be used to block access from a specific ip address or cidr to an endpoint in your cluster. To demonstrate it, we are going to block the access from your workstation to the Online Boutique frontend-external service.
+## Ingress Policies using NetworkSets
+
+The NetworkSet can also be used to block access from a specific ip address or cidr to an endpoint in your cluster. To demonstrate it, we are going to block the access from your workstation to the Online Boutique frontend-external service.
 
    a. Test the access to the frontend-external service
 
@@ -454,129 +503,13 @@ We recommend that you create a global default deny policy after you complete wri
    curl -sI -m3 $(kubectl get svc frontend-external -ojsonpath='{.status.loadBalancer.ingress[0].ip}') | grep -i http
    ```
 
----
-
-### Using Global Threatfeeds to detect and prevent web attacks
-
-
-| PCI Control # | Requirements| How Calico meets this requirements |
-| --- | --- | --- |
-| 6.5, 6.6 | Detect and prevent web attacks | • Use policy to implement fine-grained access controls for services |
-
-1. Protect workloads with GlobalThreatfeed from known bad actors.
-
-   Calicocloud offers [Global Threatfeed](https://docs.tigera.io/reference/resources/globalthreatfeed) resource to prevent known bad actors from accessing Kubernetes pods.
-
-   ```bash
-   kubectl get globalthreatfeeds
-   ```
-
-   >Output is 
-   ```bash
-   NAME                           CREATED AT
-   alienvault.domainthreatfeeds   2021-09-28T15:01:33Z
-   alienvault.ipthreatfeeds       2021-09-28T15:01:33Z
-   ```
-
-   You can get these domain/ip list from yaml file, the url would be:
-
-   ```bash
-   kubectl get globalthreatfeeds alienvault.domainthreatfeeds -ojson | jq -r '.spec.pull.http.url'
-   kubectl get globalthreatfeeds alienvault.ipthreatfeeds -ojson | jq -r '.spec.pull.http.url'
-   ```
-
-   >Output is 
-   ```bash
-   https://installer.calicocloud.io/feeds/v1/domains
-
-   https://installer.calicocloud.io/feeds/v1/ips
-   ```
-
-   1. Deploy the feodo Threatfeed
-
-      ```yaml
-      kubectl apply -f - <<-EOF
-      apiVersion: projectcalico.org/v3
-      kind: GlobalThreatFeed
-      metadata:
-        name: feodo-tracker
-      spec:
-        pull:
-          http:
-            url: https://feodotracker.abuse.ch/downloads/ipblocklist.txt
-        globalNetworkSet:
-          labels:
-            threatfeed: feodo
-      EOF
-      ```
-
-   2. Deploy the policy to block traffic from and to feodo Threatfeed
-
-      ```yaml
-      kubectl apply -f - <<-EOF
-      apiVersion: projectcalico.org/v3
-      kind: GlobalNetworkPolicy
-      metadata:
-        name: security.block-threadfeed
-      spec:
-        tier: security
-        order: 210
-        selector: all()
-        types:
-        - Egress
-        egress:
-        - action: Deny
-          destination:
-            selector: threatfeed == "feodo"
-        - action: Pass
-      EOF
-      ```
-
-   3. Confirm and check the tracker threatfeed
-   
-      ```bash
-      kubectl get globalthreatfeeds 
-      ```
-   
-      ```bash
-      NAME                           CREATED AT
-      alienvault.domainthreatfeeds   2022-02-11T19:21:26Z
-      alienvault.ipthreatfeeds       2022-02-11T19:21:26Z
-      feodo-tracker                  2022-02-11T22:21:43Z 
-      ```
-    
-2. Generate alerts by accessing the IP from `feodo-tracker` list. 
-
-   ```bash
-   # try to ping any of the IPs in from the feodo tracker list.
-   FIP=$(kubectl get globalnetworkset threatfeed.feodo-tracker -ojson | jq -r '.spec.nets[0]' | sed -e 's/^"//' -e 's/\/32//')
-   kubectl -n dev exec -t netshoot -- sh -c "ping -c1 $FIP"
-   ```
-<!--   -->
-3. Generate alerts by accessing the IP from `alienvault.ipthreatfeeds` list. 
-
-   ```bash
-   # try to ping any of the IPs in from the ipthreatfeeds list.
-   AIP=$(kubectl get globalnetworkset threatfeed.alienvault.ipthreatfeeds -ojson | jq -r '.spec.nets[0]' | sed -e 's/^"//' -e 's/"$//' -e 's/\/32//')
-   kubectl -n dev exec -t netshoot -- sh -c "ping -c1 $AIP"
-   ```
-
-4. Confirm you are able to see the alerts in alert list. 
-
----
-
 ## Microsegmentation
 
 Calico eliminates the risks associated with lateral movement in the cluster to prevent access to sensitive data and other assets. Calico provides a unified, cloud-native segmentation model and single policy framework that works seamlessly across multiple application and workload environments. It enables faster response to security threats
 with a cloud-native architecture that can dynamically enforce security policy changes across cloud environments in milliseconds in response to an attack.
 
-
-| PCI Control # | Requirements| How Calico meets this requirements |
-| --- | --- | --- |
-|1.1, 1.1.4, 1.1.6, 1.2.1, 1.2.2, 1.2.3 | Install and maintain a firewall configuration to protect cardholder data | • Identify everything covered by PCI requirements with a well-defined label (e.g. PCI=true)<br>• Block all traffic between PCI and non-PCI workloads<br>• Whitelist all traffic within PCI workloads |
-
  
-### Microsegmentation using label PCI = true on a namespace
+## Microsegmentation using label PCI = true on a namespace
 
 1. For the microsegmentation deploy a new example application
 
@@ -637,173 +570,17 @@ Now only the pods labeled with PCI=true will be able to exchange information. No
 
 ---
 
-## IDS/IPS
-
-Calico pinpoints the source of malicious activity, uses machine learning to identify anomalies, creates a security moat
-around critical workloads, deploys honeypods to capture zero-day attacks, and automatically quarantines potentially
-malicious workloads to thwart an attack. It monitors inbound and outbound traffic (north-south) and east-west traffic
-that is traversing the cluster environment. Calico provides threat feed integration and custom alerts, and can be
-configured to trigger automatic remediation.
-
-
-| PCI Control # | Requirements| How Calico meets this requirements |
-| --- | --- | --- |
-| 5.1, 5.2, 5.3, 5.4, 10.6, 11.4 | Protect all systems against malware with Intrusion Detection Systems (IDS)/Intrusion Prevention Systems (IPS) and network monitoring. Regularly update antivirus software. Review logs for anomalous and suspicious activity | • Detect and address anomalies and threats with Calico instead of antivirus software <br>• Report and analyze compliance audit findings with Calico<br>• Automatically quarantine compromised workloads<br>• Get insights into statistical and behavioral anomalies with Calico flow logs
-
----
-
-DPI / IDS
-
-### Deep Packet Inspection
-
-1. Create the DPI and the Intrusion Detection for the dev/nginx service.
-   ```yaml
-   kubectl apply -f - <<-EOF
-   apiVersion: projectcalico.org/v3
-   kind: DeepPacketInspection
-   metadata:
-     name: dpi-nginx
-     namespace: dev
-   spec:
-     selector: app == "nginx"
-   ---
-   apiVersion: operator.tigera.io/v1
-   kind: IntrusionDetection
-   metadata:
-     name: tigera-secure
-   spec:
-     componentResources:
-     - componentName: DeepPacketInspection
-       resourceRequirements:
-         limits:
-           cpu: "1"
-           memory: 1Gi
-         requests:
-           cpu: 100m
-           memory: 100Mi
-   EOF
-   ```
-
-2. Attack the nginx service
-
-   [Sid 1-21562 - MALWARE-CNC Win.Trojan.Bredolab variant outbound connection](https://www.snort.org/rule_docs/1-21562) 
-   ```bash
-   kubectl -n dev exec -t netshoot -- sh -c "curl -m2 http://nginx-svc/ -H 'User-Agent: Mozilla/4.0' -XPOST --data-raw 'smk=1234'"
-   ```
-
-   [Sid 1-57461 - MALWARE-BACKDOOR Perl.Backdoor.PULSECHECK variant cnc connection](https://www.snort.org/rule_docs/1-57461)
-   ```bash
-   kubectl -n dev exec -t netshoot -- sh -c "curl -m2 http://nginx-svc/secid_canceltoken.cgi -H 'X-CMD: Test' -H 'X-KEY: Test' -XPOST"
-   ```
-
-   [Sid 1-1002 - SERVER-IIS cmd.exe access](https://www.snort.org/rule_docs/1-1002)
-   ```bash
-   kubectl -n dev exec -t netshoot -- sh -c "curl -m2 http://nginx-svc/cmd.exe"
-   ```
-   
-   [Sid 1-2585 - SERVER-WEBAPP nessus 2.x 404 probe](https://www.snort.org/rule_docs/1-2585)  
-   ```bash
-   kubectl -n dev exec -t netshoot -- sh -c "curl -m2 http://nginx-svc/NessusTest"
-   ```
-   
-   [Check the Snort Id here!](https://www.snort.org/search)
-
----
-
 ## Policy lifecycle management
 
 
 With Calico, teams can create, preview, and deploy security policies based on the characteristics and metadata
 of a workload. These policies can provide an automated and scalable way to manage and isolate workloads for
-security and compliance, in adherence with PCI compliance requirements. You can automate a validation step that
-ensures your security policy works properly before being committed. Calico can deploy your policies in a “staged”
-mode that will display which traffic is being allowed or denied before the policy rule is enforced. The policy can then
-be committed if it is operating properly. This step avoids any potential problems caused by incorrect, incomplete, or
+security and compliance. You can automate a validation step that ensures your security policy works properly before being committed. Calico can deploy your policies in a “staged” mode that will display which traffic is being allowed or denied before the policy rule is enforced. The policy can then be committed if it is operating properly. This step avoids any potential problems caused by incorrect, incomplete, or
 conflicting security policy definitions.
-
-
-| PCI Control # | Requirements| How Calico meets this requirements |
-| --- | --- | --- |
-| 1.1.1, 1.1.5, 1.1.7 | A formal process for approving and testing all network connections and changes to the rule sets | • Use Calico to record and review all policy changes that affect connectivity between covered components |
-| 10.1, 10.2, 10.3 | Implement and record audit trail for all access to system components | • Record all policy changes that impact connectivity to/from in-scope assets with Calico |
 
 1. Open a policy and check the change log
 
 ![change-log](https://user-images.githubusercontent.com/104035488/192361358-33ad8ab4-0c86-4892-a775-4d3bfc72ba38.gif)
-
----
-
-## Encryption
-
-Calico’s data-in-transit encryption provides category-leading performance and lower CPU utilization than legacy
-approaches based on IPsec and OpenVPN tunneling protocols. No matter where a threat originates, data encrypted
-by Calico is unreadable to anyone except the legitimate keyholder, thus protecting sensitive data should a perimeter
-breach occur. It enables compliance with corporate and regulatory data protection requirements, such as PCI, that
-specify the use of encryption. Calico’s encryption is 6X faster than any other solution on the market.
-
-| PCI Control # | Requirements| How Calico meets this requirements |
-| --- | --- | --- |
-| 4.1 | Data-in-transit encryption to safeguard sensitive data | • Secure and encrypt data in transit for all covered workloads|
-
-
-1. On AKS, the WireGuard is already installed in Ubuntu nodes.
-
-2. Enable WireGuard for the cluster
-
-   ```bash
-   kubectl patch felixconfiguration default --type='merge' -p '{"spec":{"wireguardEnabled":true}}'
-   ```
-
-3. Verify if enabled
-
-   ```bash
-   NODENAME=$(kubectl get nodes -o=jsonpath='{.items[0].metadata.name}')
-   kubectl get node $NODENAME -o yaml | grep -B2 -A5 annotation
-   ```
-
-4. Enable stats collection
-
-   ```bash
-   kubectl patch installation.operator.tigera.io default --type merge -p '{"spec":{"nodeMetricsPort":9091}}'
-   ```
-
-5. Apply Service, ServiceMonitor, NetworkPolicy manifests:
-
-   ```bash
-   kubectl apply -f https://raw.githubusercontent.com/regismartins/cc-aks-security-compliance-workshop/main/manifests/wireguard-stats.yaml
-   ```
-
-6. Disable WireGuard for the cluster
-   ```bash
-   kubectl patch felixconfiguration default --type='merge' -p '{"spec":{"wireguardEnabled":false}}'
-   ```
-
----
-
-## Compliance Reports
-
-Continuous compliance means employing a continual audit that shows what traffic was allowed in your infrastructure,
-what traffic was denied and why, and logs of who was trying to change what and whether those changes went into
-effect. Continuous compliance gives teams the ability to pinpoint any point in time and say with reasonable certainty
-whether the organization was in compliance—and provide documentation to prove it. Calico’s compliance reports
-visually describe the security controls in place in an easy-to-understand policy view. Calico also shows all workloads
-that are in-scope and out-of-scope with your policy.
-
-
-| PCI Control # | Requirements| How Calico meets this requirements |
-| --- | --- | --- |
-| 2.2, 2.4 | Inventory the systems and make sure they meet industry-accepted system-hardening standards | • Keep a running inventory of all ephemeral workloads along with their networking and security controls<br>• Leverage inventory report and CIS|
-
-1. On the Calico Cloud GUI, navigate to `Compliance`.
-
-![compliance-reports](https://user-images.githubusercontent.com/104035488/192358634-c873ffb5-f874-495f-8ba4-79806ff84654.gif)
-
-
-2. Explore the Compliance Reports.
-
-![cis-benchmark](https://user-images.githubusercontent.com/104035488/192358645-ab77c305-0a9d-4242-b37f-972dc22b4d84.gif)
-
----
 
 # Thank you!
 
@@ -827,4 +604,4 @@ that are in-scope and out-of-scope with your policy.
 
 ---
 
-[:arrow_up: Back to the top](/README.md#microsoft-azure-hands-on-aks-workshop--configuration-security-and-compliance)
+[:arrow_up: Back to the top](/README.md#calico-cloud-demo-on-an-eks-cluster)
