@@ -245,9 +245,9 @@ We recommend that you create a global default deny policy after you complete wri
      egress:
      - action: Allow
        protocol: UDP
-       source: {}
        destination:
          selector: k8s-app == "kube-dns"
+         namespaceSelector: kubernetes.io/metadata.name == "kube-system" 
          ports:
          - '53'
      - action: Allow
