@@ -40,6 +40,12 @@ Once you are able to login to Calico Cloud UI, go to the "Managed clusters" sect
 
 ## Enviroment Preparation
 
+### Clone this repository
+
+```bash
+git clone git@github.com:tigera-solutions/cc-demo-workload-security.git
+```
+
 ### Decrease the time to collect flow logs
 
 By default, flow logs are collected every 5 minutes. We will decrease that time to 15 seconds, which will increase the amount of information we must store, and while that is not recommended for production environments, it will help to speed up the time in which events are seen within Calico observability features.
@@ -60,19 +66,17 @@ kubectl patch felixconfiguration default -p '{"spec":{"flowLogsCollectTcpStats":
 
 ### Install demo applications
 
-- Deploy demo applications.
+Deploy the dev app stack
 
-  Deploy the dev app stack
+```bash
+kubectl apply -f https://raw.githubusercontent.com/regismartins/cc-aks-security-compliance-workshop/main/manifests/dev-app-manifest.yaml
+```
+ 
+Deploy the Online Boutique app stack
 
-  ```bash
-  kubectl apply -f https://raw.githubusercontent.com/regismartins/cc-aks-security-compliance-workshop/main/manifests/dev-app-manifest.yaml
-  ```
-  
-  Deploy the Online Boutique app stack
-
-  ```bash
-  kubectl apply -f https://raw.githubusercontent.com/regismartins/cc-aks-security-compliance-workshop/main/manifests/kubernetes-manifests.yaml
-  ```
+```bash
+kubectl apply -f https://raw.githubusercontent.com/regismartins/cc-aks-security-compliance-workshop/main/manifests/kubernetes-manifests.yaml
+```
 
 ---
 
