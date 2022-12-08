@@ -584,13 +584,12 @@ The NetworkSet can also be used to block access from a specific ip address or ci
    curl -sI -m3 $(kubectl get svc frontend-external -ojsonpath='{.status.loadBalancer.ingress[0].hostname}') | grep -i http
    ```
 
-## Microsegmentation
+## Microsegmentation Sample
 
 Calico eliminates the risks associated with lateral movement in the cluster to prevent access to sensitive data and other assets. Calico provides a unified, cloud-native segmentation model and single policy framework that works seamlessly across multiple application and workload environments. It enables faster response to security threats
 with a cloud-native architecture that can dynamically enforce security policy changes across cloud environments in milliseconds in response to an attack.
 
- 
-## Microsegmentation using label PCI = true on a namespace
+ ### Microsegmentation using label PCI = true on a namespace
 
 1. For the microsegmentation deploy a new example application
 
@@ -651,20 +650,6 @@ Now only the pods labeled with PCI=true will be able to exchange information. No
 
 ---
 
-## Policy lifecycle management
-
-
-With Calico, teams can create, preview, and deploy security policies based on the characteristics and metadata
-of a workload. These policies can provide an automated and scalable way to manage and isolate workloads for
-security and compliance. You can automate a validation step that ensures your security policy works properly before being committed. Calico can deploy your policies in a “staged” mode that will display which traffic is being allowed or denied before the policy rule is enforced. The policy can then be committed if it is operating properly. This step avoids any potential problems caused by incorrect, incomplete, or
-conflicting security policy definitions.
-
-1. Open a policy and check the change log
-
-![change-log](https://user-images.githubusercontent.com/104035488/192361358-33ad8ab4-0c86-4892-a775-4d3bfc72ba38.gif)
-
----
-
 ## Infrastructure as Code - Deploy Security Policies using Terraform
 
 Security policies are part of the Calico CRDs (projectcalico.org), so once you have Calico installed the network policies and all other resources can be refered in a yaml or in a terraform code using kubernetes provider.
@@ -691,7 +676,8 @@ The converted .tf files are suitable for use with the Terraform Kubernetes Provi
 Convert a the policy YAML file and write output to file in the terraform-k2tf folder.
 
 ```bash
-k2tf -f ./manifests/policies.yaml -o ./terraform-k2tf/policies.tf
+k2tf -f ./manifests/tier-tf.yaml -o ./terraform-k2tf/tier.tf
+k2tf -f ./manifests/policy-tf.yaml -o ./terraform-k2tf/policy.tf
 ```
 
 Change directory to the terraform folder, init and apply the terraform code.
@@ -714,6 +700,21 @@ terraform destroy -auto-approve
 In the Calico Cloud GUI, go to the Policies Board, and select the policy `<policy-name>`.
 
 Change the policy and save.
+
+---
+
+## Policy lifecycle management
+
+With Calico, teams can create, preview, and deploy security policies based on the characteristics and metadata
+of a workload. These policies can provide an automated and scalable way to manage and isolate workloads for
+security and compliance. You can automate a validation step that ensures your security policy works properly before being committed. Calico can deploy your policies in a “staged” mode that will display which traffic is being allowed or denied before the policy rule is enforced. The policy can then be committed if it is operating properly. This step avoids any potential problems caused by incorrect, incomplete, or
+conflicting security policy definitions.
+
+1. Open a policy and check the change log
+
+![change-log](https://user-images.githubusercontent.com/104035488/192361358-33ad8ab4-0c86-4892-a775-4d3bfc72ba38.gif)
+
+---
 
 # Thank you!
 
