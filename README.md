@@ -348,7 +348,7 @@ Let's see how Calico can help us to build a security policy in order to allow th
 
 Click in the Policy Recommendation button in the Policy Board:
 
-![policy-recommendation](./img/policy-recommendation.png)
+![recommend-a-policy](https://user-images.githubusercontent.com/104035488/206473864-f70ac0dd-d50d-46e1-b95b-d0153c154a79.png)
 
 Now select the time range you will look back in the flow logs to recommend a policy based on them. You must have tried to access the yaobank service, select the time range to include those attempts, and at least allow for the "flowLogsFlushInterval" you configured in the preparation section, otheriwse, you will not retrieve the data needed.
 
@@ -358,7 +358,7 @@ When you click on the "Recommend" button in the top right corner, you will see t
   
 The policy will be created at the end of your policy chain (at the bottom of the default Tier). You must move the policy to the right order, so it can have effect. In our case, as we would like to hit this policy before the pci isolation policy is done (so we are able to reach the customer service before it is isolated), drag and drop the policy in the board to the right place as indicated by the figure below:
 
-![move-policy](./img/move-policy.png)
+![move-policy](https://user-images.githubusercontent.com/104035488/206474337-cad7d5ef-da72-4845-97ee-8911e3249e62.png)
 
 Now you should be able to access the Online Boutique application in your browser.
 
