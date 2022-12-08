@@ -106,14 +106,14 @@ kubectl apply -f - <<-EOF
 apiVersion: projectcalico.org/v3
 kind: Tier
 metadata:
-  name: platform
+  name: security
 spec:
   order: 300
 ---
 apiVersion: projectcalico.org/v3
 kind: Tier
 metadata:
-  name: security
+  name: platform
 spec:
   order: 400
 EOF
@@ -128,7 +128,11 @@ Two mechanisms drive how traffic is processed across tiered policies:
 - Labels and selectors
 - Policy action rules
 
---
+For more information about tiers, please refer to the Calico Cloud documentation [Understanding policy tiers](https://docs.calicocloud.io/get-started/tutorials/policy-tiers)
+
+
+---
+
 
 ## Security Policies
 
