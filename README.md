@@ -18,10 +18,12 @@ In this demo, you will work with AWS EKS and Calico Cloud to learn how to design
 
 Calico can be used as a CNI, or you can decide to use AWS VPC networking and have Calico only as plugin for the security policies. 
 
-We will use the second approach during the workshop. Below an example on how to create a two nodes cluster with an smaller footprint, but feel free to create your EKS cluster with the parameters you prefer. Do not forget to include the region if different than the default on your account.
+We will use the second approach during the demo. Below an example on how to create a two nodes cluster with an smaller footprint, but feel free to create your EKS cluster with the parameters you prefer. Do not forget to include the region if different than the default on your account.
 
-```
-eksctl create cluster --name <CLUSTER_NAME> --version 1.21 --node-type m5.xlarge
+```bash
+export CLUSTERNAME=rm-demo
+export REGION=ca-central-1
+eksctl create cluster --name $CLUSTERNAME --version 1.21  --region $REGION --node-type m5.xlarge
 ```
 
 ### Connect your cluster to Calico Cloud
