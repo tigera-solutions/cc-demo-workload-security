@@ -136,11 +136,32 @@ For more information about tiers, please refer to the Calico Cloud documentation
 
 ## Security Policies
 
+Calico security policy provides a richer set of policy capabilities than Kubernetes network policies including:  
+
+- Policies that can be applied to any kind of endpoint: pods/containers, VMs, and/or to host interfaces
+- Policies that can define rules that apply to ingress, egress, or both
+- Policy rules support:
+  - Actions: allow, deny, log, pass
+  - Source and destination match criteria:
+    - Ports: numbered, ports in a range, and Kubernetes named ports
+    - Protocols: TCP, UDP, ICMP, SCTP, UDPlite, ICMPv6, protocol numbers (1-255)
+    - HTTP attributes (if using Istio service mesh)
+    - ICMP attributes
+    - IP version (IPv4, IPv6)
+    - IP or CIDR
+    - Endpoint selectors (using label expression to select pods, VMs, host interfaces, and/or network sets)
+    - Namespace selectors
+    - Service account selectors
+- Optional packet handling controls: disable connection tracking, apply before DNAT, apply to forwarded traffic and/or locally terminated - traffic
+
+
+### The Zero Trust approach
+
 A global default deny policy ensures that unwanted traffic (ingress and egress) is denied by default. Pods without policy (or incorrect policy) are not allowed traffic until appropriate network policy is defined. Although the staging policy tool will help you find incorrect and missing policy, a global deny helps mitigate against other lateral malicious attacks.
 
 By default, all traffic is allowed between the pods in a cluster. First, let's test connectivity between application components and across application stacks. All of these tests should succeed as there are no policies in place.
 
-Install curl in the loadgenerator for these tests.
+First, let's install `curl` in the loadgenerator pod for these tests.
 
 ```bash
 kubectl exec -it $(kubectl get po -l app=loadgenerator -ojsonpath='{.items[0].metadata.name}') -c main -- sh -c 'apt-get update && apt install curl -y'
@@ -314,7 +335,7 @@ We recommend that you create a global default deny policy after you complete wri
 6. Use the Calico Cloud GUI to enforce the default-deny staged policy. After enforcing a staged policy, it takes effect immediatelly. The default-deny policy will start to actually deny traffic.
    
 ---
-## Security Policy Reccomender
+## Security Policy Recommender
 
 Now let's see how Calico can help us to build a microsegmentation policy in order to allow the traffic to our frontend service.
 
