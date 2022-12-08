@@ -152,7 +152,7 @@ Calico Security Policies provide a richer set of policy capabilities than Kubern
     - Endpoint selectors (using label expression to select pods, VMs, host interfaces, and/or network sets)
     - Namespace selectors
     - Service account selectors
-- Optional packet handling controls: disable connection tracking, apply before DNAT, apply to forwarded traffic and/or locally terminated - traffic
+
 
 
 ### The Zero Trust approach
