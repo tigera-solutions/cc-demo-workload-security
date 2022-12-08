@@ -246,7 +246,7 @@ We recommend that you create a global default deny policy after you complete wri
      - action: Allow
        protocol: UDP
        destination:
-         selector: k8s-app = "kube-dns"
+         selector: k8s-app == "kube-dns"
          ports:
          - '53'
      - action: Allow
