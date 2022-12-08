@@ -136,7 +136,7 @@ For more information about tiers, please refer to the Calico Cloud documentation
 
 ## Security Policies
 
-Calico security policy provides a richer set of policy capabilities than Kubernetes network policies including:  
+Calico Security Policies provide a richer set of policy capabilities than Kubernetes network policies including:  
 
 - Policies that can be applied to any kind of endpoint: pods/containers, VMs, and/or to host interfaces
 - Policies that can define rules that apply to ingress, egress, or both
@@ -219,7 +219,7 @@ We recommend that you create a global default deny policy after you complete wri
    EOF
    ```
 
-   You should be able to view the potential affect of the staged default-deny policy if you navigate to the Dashboard view in the Enterprise Manager UI and look at the Packets by Policy histogram.
+   You should be able to view the potential affect of the staged default-deny policy if you navigate to the Dashboard view in the Calico Cloud UI and look at the Packets by Policy histogram.
 
    ```bash
    # make a request across namespaces and view Packets by Policy histogram, the expected result is "HTTP/1.1 200 OK"
@@ -329,11 +329,11 @@ We recommend that you create a global default deny policy after you complete wri
 5. Apply the policies to allow the microservices to communicate with each other.
 
    ```bash
-   kubectl apply -f https://raw.githubusercontent.com/regismartins/cc-aks-security-compliance-workshop/main/manifests/east-west-traffic.yaml
+   kubectl apply -f ./manifests/east-west-traffic.yaml
    ```
 
-6. Use the Calico Cloud GUI to enforce the default-deny staged policy. After enforcing a staged policy, it takes effect immediatelly. The default-deny policy will start to actually deny traffic.
-   
+6. Use the Calico Cloud GUI to enforce the default-deny staged policy. After enforcing a staged policy, it takes effect immediatelly. The default-deny policy will start to actually deny traffic. 
+
 ---
 ## Security Policy Recommender
 
@@ -353,7 +353,7 @@ The policy will be created at the end of your policy chain (at the bottom of the
 
 ![move-policy](./img/move-policy.png)
 
-Now you should be able to access the yaobank application in your browser.
+Now you should be able to access the Online Boutique application in your browser.
 
 ---
 
