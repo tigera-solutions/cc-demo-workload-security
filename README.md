@@ -342,7 +342,7 @@ We recommend that you create a global default deny policy after you complete wri
 ---
 ## Security Policy Recommender
 
-Notice that the Online Botique web site stop responding. That is because we didnt deploy any policy for the  `frontend ` worload.
+Notice that the Online Botique web site stop responding. That is because we didnt deploy any policy for the  `frontend` worload.
 
 Let's see how Calico can help us to build a security policy in order to allow the traffic to our frontend service.
 
