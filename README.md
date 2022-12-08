@@ -337,24 +337,48 @@ We recommend that you create a global default deny policy after you complete wri
    kubectl apply -f ./manifests/east-west-traffic.yaml
    ```
 
-6. Use the Calico Cloud GUI to enforce the default-deny staged policy. After enforcing a staged policy, it takes effect immediatelly. The default-deny policy will start to actually deny traffic. 
+6. Deploy the following security policy for allowing DNS access to all endpoints in the security ties.
+
+  ```yaml
+  kubectl apply -f - <<-EOF
+  apiVersion: projectcalico.org/v3
+  kind: GlobalNetworkPolicy
+  metadata:
+    name: security.allow-kube-dns
+  spec:
+    tier: security
+    order: 200
+    selector: all()
+    types:
+    - Egress    
+    egress:
+      - action: Allow
+        protocol: UDP
+        source: {}
+        destination:
+          selector: k8s-app == "kube-dns"
+          ports:
+          - '53'
+      - action: Pass
+  EOF
+  ```
+
+7. Use the Calico Cloud GUI to enforce the default-deny staged policy. After enforcing a staged policy, it takes effect immediatelly. The default-deny policy will start to actually deny traffic. 
 
 ---
 ## Security Policy Recommender
 
-Notice that the Online Botique web site stop responding. That is because we didnt deploy any policy for the  `frontend` worload.
+Notice that the Online Botique web site stop responding. That is because we didnt deploy any policy for the `frontend` worload.
 
-Let's see how Calico can help us to build a security policy in order to allow the traffic to our frontend service.
+Let's see how Calico can help us to build a security policy in order to allow the traffic to frontend service.
 
 Click in the Policy Recommendation button in the Policy Board:
 
 ![recommend-a-policy](https://user-images.githubusercontent.com/104035488/206473864-f70ac0dd-d50d-46e1-b95b-d0153c154a79.png)
 
-Now select the time range you will look back in the flow logs to recommend a policy based on them. You must have tried to access the yaobank service, select the time range to include those attempts, and at least allow for the "flowLogsFlushInterval" you configured in the preparation section, otheriwse, you will not retrieve the data needed.
+Now select the time range you will look back in the flow logs to recommend a policy based on them. Select the namespace of the application we want the recommended policy for (default), and the right service (frontend-XXXXXX-*).
 
-Select the namespace of the application we want the recommended policy for (yaobank), and the right service (customer-<hash>). Unselect the "Unprotected only" box.
-
-When you click on the "Recommend" button in the top right corner, you will see that Calico recommends to open the traffic to port 80 on Ingress, so we would be able to reach the frontend application again. Click on "Enforce", and then the "Back" button.
+When you click on the "Recommend" button in the top right corner, you will see that Calico recommends to open the traffic to port 8080 on Ingress, so we would be able to reach the frontend application again. There is also lots of other ingress and egress rules that will be created. Click on "Enforce", and then the "Back" button.
   
 The policy will be created at the end of your policy chain (at the bottom of the default Tier). You must move the policy to the right order, so it can have effect. In our case, as we would like to hit this policy before the pci isolation policy is done (so we are able to reach the customer service before it is isolated), drag and drop the policy in the board to the right place as indicated by the figure below:
 
