@@ -1,0 +1,16 @@
+apiVersion: projectcalico.org/v3
+kind: NetworkPolicy
+metadata:
+  name: terraform.centos
+  namespace: dev
+spec:
+  tier: terraform
+  order: 800
+  selector: app == "centos"
+  egress:
+  - action: Allow
+    protocol: TCP
+    destination:
+      selector: app == "nginx"
+  types:
+    - Egress
