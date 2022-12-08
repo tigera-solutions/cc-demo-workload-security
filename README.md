@@ -95,7 +95,7 @@ Connect to Calico Cloud GUI. From the menu select `Service Graph > Flow Visualiz
 ![flow-visualization](https://user-images.githubusercontent.com/104035488/192358472-112c832f-2fd7-4294-b8cc-fec166a9b11e.gif)
 
 
-## Security Policy Tier structure
+## Security Policy Tiers
 
 Tiers are a hierarchical construct used to group policies and enforce higher precedence policies that cannot be circumvented by other    teams. 
 
@@ -103,13 +103,6 @@ All Calico and Kubernetes security policies reside in tiers. You can start “th
 
 ```yaml
 kubectl apply -f - <<-EOF   
-apiVersion: projectcalico.org/v3
-kind: Tier
-metadata:
-  name: quarantine
-spec:
-  order: 200
----
 apiVersion: projectcalico.org/v3
 kind: Tier
 metadata:
@@ -124,6 +117,18 @@ metadata:
 spec:
   order: 400
 ```
+
+Policies are processed in sequential order from top to bottom.
+
+
+
+Two mechanisms drive how traffic is processed across tiered policies:
+
+Labels and selectors
+Policy action rules
+It is important to understand the roles they play.
+
+
 
 For normal policy processing (without apply-on-forward, pre-DNAT, and do-not-track), if no policies within a tier apply to endpoints, the tier is skipped, and the tier’s implicit deny behavior is not executed.
 
