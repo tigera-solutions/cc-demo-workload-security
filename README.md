@@ -649,31 +649,13 @@ Security policies are part of the Calico CRDs (projectcalico.org), so once you h
 
 There are many providers that allow you to use yaml files with terraform. For this demo we will look into one of them:
 
-[**k2tf - Kubernetes YAML to Terraform HCL converter**](https://github.com/sl1pm4t/k2tf)
+[**kubectl - Terraform Provider**](https://registry.terraform.io/providers/gavinbunney/kubectl/1.14.0)
 
-A tool for converting Kubernetes API Objects (in YAML format) into HashiCorp's Terraform configuration language.
-The converted .tf files are suitable for use with the Terraform Kubernetes Provider
-
-### Installation
-
-- Pre-built Binaries
-
-  Download Binary from GitHub [releases](https://github.com/sl1pm4t/k2tf/releases/latest) page.
-
-- Homebrew
-
-  ```bash
-  brew install k2tf
-  ```
-
-Convert a the policy YAML file and write output to file in the terraform-k2tf folder.
-
-```bash
-k2tf -f ./manifests/tier-tf.yaml -o ./terraform-k2tf/tier.tf
-k2tf -f ./manifests/policy-tf.yaml -o ./terraform-k2tf/policy.tf
-```
+This provider is the best way of managing Kubernetes resources in Terraform, by allowing you to use the thing Kubernetes loves best - yaml!
 
 Change directory to the terraform folder, init and apply the terraform code.
+
+Configure your cluster name in the `terraform.tf` file and run the commands below.
 
 ```bash
 terraform init
