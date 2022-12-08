@@ -116,6 +116,7 @@ metadata:
   name: security
 spec:
   order: 400
+EOF
 ```
 
 Policies are processed in sequential order from top to bottom.
