@@ -243,6 +243,12 @@ We recommend that you create a global default deny policy after you complete wri
      order: 800
      selector: app == "centos"
      egress:
+     - actions: Allow
+       protocol: UDP
+       destination:
+         selector: k8s-app = "kube-dns"
+         posts:
+         - '53'
      - action: Allow
        protocol: TCP
        destination:
@@ -252,7 +258,7 @@ We recommend that you create a global default deny policy after you complete wri
    EOF
    ```
 
-3. Test connectivity with policies in place.
+3. Test connectivity with the policy in place.
 
    a. The only connections between the components within namespaces dev are from centos to nginx, which should be allowed as configured by the policies.
 
