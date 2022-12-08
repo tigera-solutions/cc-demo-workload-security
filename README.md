@@ -120,21 +120,13 @@ spec:
 
 Policies are processed in sequential order from top to bottom.
 
-
+![policy-processing](https://user-images.githubusercontent.com/104035488/206433417-0d186664-1514-41cc-80d2-17ed0d20a2f4.png)
 
 Two mechanisms drive how traffic is processed across tiered policies:
 
-Labels and selectors
-Policy action rules
-It is important to understand the roles they play.
+- Labels and selectors
+- Policy action rules
 
-
-
-For normal policy processing (without apply-on-forward, pre-DNAT, and do-not-track), if no policies within a tier apply to endpoints, the tier is skipped, and the tier’s implicit deny behavior is not executed.
-
-For example, if policy D in Tier 2 includes a Pass action rule, but no policy matches endpoints in Tier 3, Tier 3 is skipped, including the end of tier deny. The first policy with a matching endpoint is in Tier 4, policy J.
-
-![endpoint-match](./img/endpoint-match.svg)
 --
 
 ## Security Policies
