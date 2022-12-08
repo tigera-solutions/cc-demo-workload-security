@@ -243,7 +243,7 @@ We recommend that you create a global default deny policy after you complete wri
      order: 800
      selector: app == "centos"
      egress:
-     - actions: Allow
+     - action: Allow
        protocol: UDP
        destination:
          selector: k8s-app = "kube-dns"
