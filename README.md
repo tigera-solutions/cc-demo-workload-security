@@ -229,10 +229,8 @@ We recommend that you create a global default deny policy after you complete wri
    The staged policy does not affect the traffic directly but allows you to view the policy impact if it were to be enforced. You can see the deny traffic in staged policy.
 
 
-2. Create other network policies to individually allow the traffic shown as blocked in step 1, until no connections are denied.
+2. Create a network policy to allow the traffic shown as blocked (staged) in step 1, from the centos pod to the nginx in the same namespace.
   
-   Apply network policies to your application with explicity allow and deny control.
-
    ```yaml
    kubectl apply -f - <<-EOF   
    apiVersion: projectcalico.org/v3
