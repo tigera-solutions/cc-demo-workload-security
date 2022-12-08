@@ -306,6 +306,27 @@ We recommend that you create a global default deny policy after you complete wri
 6. Use the Calico Cloud GUI to enforce the default-deny staged policy. After enforcing a staged policy, it takes effect immediatelly. The default-deny policy will start to actually deny traffic.
    
 ---
+## Security Policy Reccomender
+
+Now let's see how Calico can help us to build a microsegmentation policy in order to allow the traffic to our frontend service.
+
+Click in the Policy Recommendation button in the Policy Board:
+
+![policy-recommendation](./img/policy-recommendation.png)
+
+Now select the time range you will look back in the flow logs to recommend a policy based on them. You must have tried to access the yaobank service, select the time range to include those attempts, and at least allow for the "flowLogsFlushInterval" you configured in the preparation section, otheriwse, you will not retrieve the data needed.
+
+Select the namespace of the application we want the recommended policy for (yaobank), and the right service (customer-<hash>). Unselect the "Unprotected only" box.
+
+When you click on the "Recommend" button in the top right corner, you will see that Calico recommends to open the traffic to port 80 on Ingress, so we would be able to reach the frontend application again. Click on "Enforce", and then the "Back" button.
+  
+The policy will be created at the end of your policy chain (at the bottom of the default Tier). You must move the policy to the right order, so it can have effect. In our case, as we would like to hit this policy before the pci isolation policy is done (so we are able to reach the customer service before it is isolated), drag and drop the policy in the board to the right place as indicated by the figure below:
+
+![move-policy](./img/move-policy.png)
+
+Now you should be able to access the yaobank application in your browser.
+
+---
 
 ## DNS Policies and NetworkSets
 
@@ -581,6 +602,58 @@ conflicting security policy definitions.
 1. Open a policy and check the change log
 
 ![change-log](https://user-images.githubusercontent.com/104035488/192361358-33ad8ab4-0c86-4892-a775-4d3bfc72ba38.gif)
+
+---
+
+## Infrastructure as Code - Deploy Security Policies using Terraform
+
+Security policies are part of the Calico CRDs (projectcalico.org), so once you have Calico installed the network policies and all other resources can be refered in a yaml or in a terraform code using kubernetes provider.
+
+There are many providers that allow you to use yaml files with terraform. For this demo we will look into one of them:
+
+[**k2tf - Kubernetes YAML to Terraform HCL converter**](https://github.com/sl1pm4t/k2tf)
+
+A tool for converting Kubernetes API Objects (in YAML format) into HashiCorp's Terraform configuration language.
+The converted .tf files are suitable for use with the Terraform Kubernetes Provider
+
+### Installation
+
+- Pre-built Binaries
+
+  Download Binary from GitHub [releases](https://github.com/sl1pm4t/k2tf/releases/latest) page.
+
+- Homebrew
+
+  ```bash
+  brew install k2tf
+  ```
+
+Convert a the policy YAML file and write output to file in the terraform-k2tf folder.
+
+```bash
+k2tf -f ./manifests/policies.yaml -o ./terraform-k2tf/policies.tf
+```
+
+Change directory to the terraform folder, init and apply the terraform code.
+
+```bash
+terraform init
+terraform apply -auto-approve
+```
+
+Check the Policies Board in the Calico Cloud GUI.
+
+Now remove the security policy by destroying the terraform implemention.
+
+```bash
+terraform destroy -auto-approve
+```
+
+## Customizing deployed policies using the Calico Cloud UI.
+
+In the Calico Cloud GUI, go to the Policies Board, and select the policy `<policy-name>`.
+
+Change the policy and save.
 
 # Thank you!
 
